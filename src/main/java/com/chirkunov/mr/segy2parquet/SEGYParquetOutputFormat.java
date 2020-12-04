@@ -3,7 +3,6 @@ package com.chirkunov.mr.segy2parquet;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.hadoop.ParquetOutputFormat;
-import org.apache.parquet.hadoop.example.GroupWriteSupport;
 import org.apache.parquet.hadoop.util.ContextUtil;
 import org.apache.parquet.schema.MessageType;
 

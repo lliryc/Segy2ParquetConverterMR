@@ -4,6 +4,7 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.DoubleWritable;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 public class TraceWritable implements Writable{
 
@@ -44,6 +45,24 @@ public class TraceWritable implements Writable{
 
     public DoubleWritable[] getTraceData(){
         return traceData;
+    }
+
+    public byte[] getTraceDataBytes(){
+        int bufSize =  traceData.length * Double.BYTES;
+        byte[] buffer = new byte[bufSize];
+        ByteBuffer bb = ByteBuffer.wrap(buffer);
+        for(int i=0; i<traceData.length;i++){
+            bb.putDouble(traceData[i].get());
+        }
+        return bb.array();
+    }
+
+    public double[] getTraceDataDouble(){
+        double[] val = new double[traceData.length];
+        for(int i  = 0; i < traceData.length; i++){
+            val[i] = traceData[i].get();
+        }
+        return val;
     }
 
     public void setTraceData(DoubleWritable[] traceData){

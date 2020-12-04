@@ -2,8 +2,7 @@ package com.chirkunov.mr.segy2parquet;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.nio.ByteBuffer;
 
 import org.apache.hadoop.fs.*;
@@ -66,6 +65,8 @@ public class SEGYInputFormat extends FileInputFormat<TraceHeaderWritable, TraceW
 			}
 		}
 		job.getConfiguration().setLong(NUM_INPUT_FILES, files.size());
+
+
 		return splits;
 	}
 
@@ -75,7 +76,7 @@ public class SEGYInputFormat extends FileInputFormat<TraceHeaderWritable, TraceW
 	public static final int TRACE_HEADER_SIZE = 240;
 	private static final int NUM_FORMAT_OFFSET = 3224;
 	private static final int NUM_FORMAT_SIZE = 2;
-	private static final int TRACES_MULTIPLIER = 1000;
+	private static final int TRACES_MULTIPLIER = 10000;
 
 	public static final String TRACE_SAMPLES_SETTING = "com.chirkunov.mr.segy2parquet.TRACE_SAMPLES";
 	public static final String TRACE_BYTE_PER_SAMPLE_SETTING = "com.chirkunov.mr.segy2parquet.TRACE_BYTES_PER_SAMPLE";
