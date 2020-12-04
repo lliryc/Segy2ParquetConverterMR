@@ -4,6 +4,7 @@
 #IntelliJ Idea
 .idea/
 target/
+*.class
 # User-specific stuff
 #.idea/**/workspace.xml
 #.idea/**/tasks.xml
@@ -69,7 +70,3 @@ fabric.properties
 
 # Editor-based Rest Client
 .idea/httpRequests
-
-# Android studio 3.1+ serialized cache file
-.idea/caches/build_file_checksums.ser
-/target/classes/com/chirkunov/mr/segy2parquet/*.class
