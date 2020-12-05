@@ -1,14 +1,26 @@
+/**
+ * Custom writable key for getting trace record header
+ * It contains base information about a trace, such as:
+ * trace unique id (within SEGY),
+ * field record number id,
+ * a distance from a source to a receiver,
+ * X,Y coordinates of a source,
+ * a sample interval in ms,
+ * iline and xline ids,
+ * @author Kirill Chirkunov (https://github.com/lliryc)
+ */
+
 package com.chirkunov.mr.segy2parquet;
 
-import com.sun.management.jmx.Trace;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+/**
+ * Custom writable key for getting trace record header info
+ */
 public class TraceHeaderWritable implements WritableComparable {
 
     public TraceHeaderWritable(){
@@ -27,6 +39,10 @@ public class TraceHeaderWritable implements WritableComparable {
 
     private int traceID;
 
+    /**
+     * Returns a unique trace id (within SEGY file)
+     * @return traceId
+     */
     public int getTraceID(){
         return traceID;
     }
@@ -38,6 +54,10 @@ public class TraceHeaderWritable implements WritableComparable {
 
     private int fieldRecordNumberID;
 
+    /**
+     * Returns an id of a field record number
+     * @return fieldRecordNumberID
+     */
     public int getFieldRecordNumberID(){
         return fieldRecordNumberID;
     }
@@ -48,6 +68,11 @@ public class TraceHeaderWritable implements WritableComparable {
 
     private int distSRG;
 
+    /**
+     * Returns a distance between a source and a receiver
+     * Please notice it could be negative
+     * @return distSRG
+     */
     public int getDistSRG(){
         return distSRG;
     }
@@ -58,6 +83,10 @@ public class TraceHeaderWritable implements WritableComparable {
 
     private int srcX;
 
+    /**
+     * Returns a X-coordinate of a source
+     * @return srcX
+     */
     public int getSrcX(){
         return srcX;
     }
@@ -66,9 +95,12 @@ public class TraceHeaderWritable implements WritableComparable {
     private final int SRCY_OFFSET = 76;
     private final int SRCY_SIZE = 4;
     private int srcY;
-
+    /**
+     * Returns a Y-coordinate of a source
+     * @return srcY
+     */
     public int getSrcY(){
-        return srcX;
+        return srcY;
     }
 
     //(117-118) Sample interval for this trace in ms
@@ -76,6 +108,10 @@ public class TraceHeaderWritable implements WritableComparable {
     private final int SI_SIZE = 2;
     private short sI;
 
+    /**
+     * Returns a sample interval
+     * @return sI
+     */
     public short getSI(){
         return sI;
     }
@@ -84,7 +120,10 @@ public class TraceHeaderWritable implements WritableComparable {
     private final int IL_OFFSET = 188;
     private final int IL_SIZE = 4;
     private int ilineID;
-
+    /**
+     * Returns an inline id
+     * @return ilineID
+     */
     public int getILineID(){
         return ilineID;
     }
@@ -93,11 +132,18 @@ public class TraceHeaderWritable implements WritableComparable {
     private final int XL_OFFSET = 192;
     private final int XL_SIZE = 4;
     private int xlineID;
-
+    /**
+     * Returns an xline id
+     * @return xlineID
+     */
     public int getXLineID(){
         return xlineID;
     }
 
+    /**
+     * Initialize TraceHeaderWritable from bytes array (following to SEGY spec)
+     * @param traceHeaderBytes bytes array
+     */
     public void fromBytes(byte[]traceHeaderBytes){
         ByteBuffer bb = ByteBuffer.wrap(traceHeaderBytes);
         bb.position(TRACEID_OFFSET);
@@ -118,6 +164,11 @@ public class TraceHeaderWritable implements WritableComparable {
         xlineID = bb.getInt();
     }
 
+    /**
+     * Serialize TraceHeaderWritable
+     * @param dataOutput
+     * @throws IOException
+     */
     @Override
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.writeInt(traceID);
@@ -130,6 +181,11 @@ public class TraceHeaderWritable implements WritableComparable {
         dataOutput.writeInt(xlineID);
     }
 
+    /**
+     * Deserialize TraceHeaderWritable
+     * @param dataInput
+     * @throws IOException
+     */
     @Override
     public void readFields(DataInput dataInput) throws IOException {
         traceID = dataInput.readInt();
@@ -142,6 +198,10 @@ public class TraceHeaderWritable implements WritableComparable {
         xlineID = dataInput.readInt();
     }
 
+    /**
+     * Initialize TraceHeaderWritable from other instance
+     * @param tw
+     */
     public void set(TraceHeaderWritable tw){
         traceID = tw.traceID;
         fieldRecordNumberID = tw.getFieldRecordNumberID();
@@ -153,9 +213,24 @@ public class TraceHeaderWritable implements WritableComparable {
         xlineID = tw.getXLineID();
     }
 
+    /**
+     * Compare TraceWritable key with other TraceWritable key using traceID
+     * @param o: TraceHeaderWritable instance to compare
+     * @return negative if less, zero if is equal to, positive if greater
+     */
     @Override
     public int compareTo(Object o) {
         TraceHeaderWritable tw = (TraceHeaderWritable)o;
         return traceID - tw.traceID;
     }
+
+    /**
+     * String representation of trace header
+     * @return
+     */
+    @Override
+    public String toString() {
+        return String.format("TraceHeader(traceId=%d)", traceID);
+    }
+
 }

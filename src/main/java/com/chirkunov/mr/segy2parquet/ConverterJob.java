@@ -1,3 +1,10 @@
+/**
+ * Map-Reduce Job implementation to convert SEGY to Parquet
+ * It consists of the nested Mapper which maps SEGY input to Parquet-compatible format,
+ * based on Protobuf protocol, run method to configure and launch the job,
+ * and main entry point for program
+ * @author Kirill Chirkunov (https://github.com/lliryc)
+ */
 package com.chirkunov.mr.segy2parquet;
 
 import java.io.IOException;
@@ -19,9 +26,14 @@ import org.apache.parquet.schema.MessageTypeParser;
 import org.apache.parquet.example.data.simple.*;
 import java.util.UUID;
 
+/**
+ * MapReduce Job to convert SEGY to Parquet format
+ */
 public class ConverterJob extends Configured implements Tool {
 
     public ConverterJob(){
+        // Protobuf description of an exported Parquet rows
+        // @see <a href="https://developers.google.com/protocol-buffers/docs/proto">https://developers.google.com/protocol-buffers/docs/proto</a>
         String writeSchema = "message Trace {\n" +
                 "required int32 traceID = 1;\n" +
                 "required int32 fieldRecordNumberID = 2;\n" +
@@ -36,19 +48,22 @@ public class ConverterJob extends Configured implements Tool {
 
         messageType = MessageTypeParser.parseMessageType(writeSchema);
     }
-
+    // Parsed protobuf description of the Parquet row
     private MessageType messageType;
+    // Setting name of the map tasks number per job
+    private final String CONF_MAPREDUCE_JOB_MAPS =  "mapreduce.job.maps";
+    // Setting name of the default filesystem (standard Hadoop setting)
+    private final String CONF_FS_DFS =  "fs.defaultFS";
+
 
     public int run(String[] args) throws Exception {
         Configuration conf = getConf();
 
-        conf.set("fs.defaultFS", "file:///");
+        //Uncomment this section for the debug purposes
+        //conf.set(CONF_FS_DFS, "file:///");
+        //conf.set(CONF_MAPREDUCE_JOB_MAPS,"1");
 
-        conf.set("mapreduce.job.maps","1");
-        conf.set("mapreduce.job.reduces","1");
-
-        conf.set("key.value.separator.in.input.line", ",");
-        Job job = Job.getInstance(conf, "patent references collect");
+        Job job = Job.getInstance(conf, "Converting SEGY to Parguet");
         Path in = new Path(args[0]);
         Path out = new Path(args[1]);
         Path outSub = new Path(UUID.randomUUID().toString());
@@ -57,20 +72,19 @@ public class ConverterJob extends Configured implements Tool {
         FileInputFormat.addInputPath(job, in);
         FileOutputFormat.setOutputPath(job, out);
         job.setMapperClass(ConverterJob.MapClass.class);
+        // Default Parquet mapper maps (k,v) to (Void, Group) pair
         job.setMapOutputKeyClass(Void.class);
         job.setMapOutputValueClass(Group.class);
+
         job.setNumReduceTasks(0);
-
         job.setInputFormatClass(SEGYInputFormat.class);
-
-        SEGYParquetOutputFormat.setSchema( job, messageType);
-
         GroupWriteSupport.setSchema(messageType, getConf());
-
         job.setOutputFormatClass(ParquetOutputFormat.class);
 
+        // Enable SNAPPY compression to make result parquet files more compact
         ParquetOutputFormat.setCompression(job, CompressionCodecName.SNAPPY);
         ParquetOutputFormat.setCompressOutput(job, true);
+
         ParquetOutputFormat.setWriteSupportClass(job, GroupWriteSupport.class);
 
         boolean success = job.waitForCompletion(true);
@@ -81,6 +95,10 @@ public class ConverterJob extends Configured implements Tool {
 
         @Override
         protected void map(TraceHeaderWritable key, TraceWritable tw, Context context) throws IOException, InterruptedException {
+            // Protobuf Parquet row description
+            // Mainly it corresponds to SEGY Trace format,
+            // however trace data samples are stored in the Double type
+            // (compromise between Int and Float types)
             String writeSchema = "message Trace {\n" +
                     "required int32 traceID = 1;\n" +
                     "required int32 fieldRecordNumberID = 2;\n" +
@@ -95,6 +113,7 @@ public class ConverterJob extends Configured implements Tool {
             MessageType mt = MessageTypeParser.parseMessageType(writeSchema);
             Group group = new SimpleGroup(mt);
             TraceHeaderWritable thw = key;
+            // protobuf map order: (1->0), (2->1), (3->2) ...
             group.add(0, thw.getTraceID());
             group.add(1, thw.getFieldRecordNumberID());
             group.add(2, thw.getDistSRG());
@@ -103,6 +122,7 @@ public class ConverterJob extends Configured implements Tool {
             group.add(5, (int) thw.getSI());
             group.add(6, thw.getILineID());
             group.add(7, thw.getXLineID());
+            // write an array of samples data
             for(double item:tw.getTraceDataDouble()){
                 group.add(8, item);
             }
@@ -111,6 +131,11 @@ public class ConverterJob extends Configured implements Tool {
         }
     }
 
+    /**
+     * Main entry point to start ConverterJob
+     * @param args: args[0] - job input folder (with SEGY files), args[1] - job output folder (for Parquet files)
+     * @throws Exception
+     */
     public static void main(String[] args) throws Exception {
         int res = ToolRunner.run(new Configuration(), new ConverterJob(), args);
         System.exit(res);

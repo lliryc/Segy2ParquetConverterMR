@@ -1,3 +1,7 @@
+/**
+ * Custom FileInputFormat implementation to provide SEGY-read within Hadoop
+ * @author Kirill Chirkunov (https://github.com/lliryc)
+ */
 package com.chirkunov.mr.segy2parquet;
 
 import java.io.IOException;
@@ -12,17 +16,30 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 
-
+/**
+ * FileInputFormat implementation for SEGY
+ */
 public class SEGYInputFormat extends FileInputFormat<TraceHeaderWritable, TraceWritable> {
 
+	// segy (rev1) header size
 	private static final int FILE_HEADER_SIZE = 3600;
 
+	/**
+	 * Returns TraceRecordReader for SEGY
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
 	@Override
 	public RecordReader<TraceHeaderWritable, TraceWritable> createRecordReader(InputSplit split, TaskAttemptContext context)
 			throws IOException, InterruptedException {
 		return new TraceRecordReader();
 	}
 
+	/**
+	 * Split SEGY-files on batches for further processing
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
 	@Override
 	public List<InputSplit> getSplits(JobContext job) throws IOException {
 		List<InputSplit> splits = new ArrayList<InputSplit>();
@@ -66,22 +83,30 @@ public class SEGYInputFormat extends FileInputFormat<TraceHeaderWritable, TraceW
 		}
 		job.getConfiguration().setLong(NUM_INPUT_FILES, files.size());
 
-
 		return splits;
 	}
-
+	// number of samples per trace - offset
 	private static final int TRACES_SAMPLES_OFFSET = 3220;
 	private static final int TRACES_SAMPLES_SIZE = 2;
+
 	private static final ByteOrder BYTE_ORDER = ByteOrder.BIG_ENDIAN; // by default
+
+	// trace header size in bytes
 	public static final int TRACE_HEADER_SIZE = 240;
+	// SEGY number format code - offset
 	private static final int NUM_FORMAT_OFFSET = 3224;
 	private static final int NUM_FORMAT_SIZE = 2;
+	// partitions multiplier
 	private static final int TRACES_MULTIPLIER = 10000;
-
+	// Setting to store data samples number
 	public static final String TRACE_SAMPLES_SETTING = "com.chirkunov.mr.segy2parquet.TRACE_SAMPLES";
+	// size of one data sample in bytes
 	public static final String TRACE_BYTE_PER_SAMPLE_SETTING = "com.chirkunov.mr.segy2parquet.TRACE_BYTES_PER_SAMPLE";
+	// number format code
 	public static final String TRACE_NUM_FMT_SETTING = "com.chirkunov.mr.segy2parquet.TRACE_NUM_FMT_SETTING";
-
+	/**
+	 * Compute a possible split length for the SEGY file, taking into account a trace size and a recommended minimal hdfs file size (>=64Mb)
+	*/
 	private int adjustSplitLength(Path file, JobContext job) throws IOException, IllegalArgumentException {
 		FileSystem fs = file.getFileSystem(job.getConfiguration());
 		try {

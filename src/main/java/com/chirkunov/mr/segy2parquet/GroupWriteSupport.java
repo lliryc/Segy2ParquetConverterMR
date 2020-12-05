@@ -1,3 +1,10 @@
+/**
+ * GroupWriteSupport implementation, according to Cloudera example
+ * This class is responsible for writing Protobuf objects to Parquet file
+ * See also: @see <a href="https://docs.cloudera.com/documentation/enterprise/5-4-x/topics/cdh_ig_parquet.html#parquet_mapreduce">https://docs.cloudera.com/documentation/enterprise/5-4-x/topics/cdh_ig_parquet.html#parquet_mapreduce</a>
+ * @author Kirill Chirkunov (https://github.com/lliryc)
+ */
+
 package com.chirkunov.mr.segy2parquet;
 
 import static org.apache.parquet.schema.MessageTypeParser.parseMessageType;
@@ -14,6 +21,9 @@ import org.apache.parquet.hadoop.api.WriteSupport;
 import org.apache.parquet.io.api.RecordConsumer;
 import org.apache.parquet.schema.MessageType;
 
+/**
+ * Implementation of GroupWriteSupport
+ */
 public class GroupWriteSupport extends WriteSupport<Group> {
 
     public static final String PARQUET_TRACE_SCHEMA = "parquet.trace.schema";
@@ -66,6 +76,5 @@ public class GroupWriteSupport extends WriteSupport<Group> {
     public void write(Group record) {
         groupWriter.write(record);
     }
-
 }
 
