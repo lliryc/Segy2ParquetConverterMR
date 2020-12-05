@@ -32,36 +32,25 @@ import java.util.UUID;
 public class ConverterJob extends Configured implements Tool {
 
     public ConverterJob(){
-        // Protobuf description of an exported Parquet rows
-        // @see <a href="https://developers.google.com/protocol-buffers/docs/proto">https://developers.google.com/protocol-buffers/docs/proto</a>
-        String writeSchema = "message Trace {\n" +
-                "required int32 traceID = 1;\n" +
-                "required int32 fieldRecordNumberID = 2;\n" +
-                "required int32 distSRG = 3;\n" +
-                "required int32 srcX = 4;\n" +
-                "required int32 srcY = 5;\n" +
-                "required int32 sI = 6;\n" +
-                "required int32 ilineID = 7;\n" +
-                "required int32 xlineID = 8;\n" +
-                "repeated double traceData = 9;\n" +
-                "}";
-
-        messageType = MessageTypeParser.parseMessageType(writeSchema);
     }
-    // Parsed protobuf description of the Parquet row
-    private MessageType messageType;
     // Setting name of the map tasks number per job
     private final String CONF_MAPREDUCE_JOB_MAPS =  "mapreduce.job.maps";
     // Setting name of the default filesystem (standard Hadoop setting)
     private final String CONF_FS_DFS =  "fs.defaultFS";
-
+    // Settings names of the block size
+    private final String CONF_DFS_BLOCKSIZE = "dfs.blocksize";
+    private final String CONF_PARQUET_BLOCK_SIZE = "parquet.block.size";
 
     public int run(String[] args) throws Exception {
         Configuration conf = getConf();
 
-        //Uncomment this section for the debug purposes
-        //conf.set(CONF_FS_DFS, "file:///");
-        //conf.set(CONF_MAPREDUCE_JOB_MAPS,"1");
+        //(Un)comment this section for the debug purposes
+        conf.set(CONF_FS_DFS, "file:///");
+        conf.set(CONF_MAPREDUCE_JOB_MAPS,"1");
+
+        // set 512 MB block size for parquet(+ dfs)
+        conf.setInt(CONF_DFS_BLOCKSIZE, 512 * 1024 * 1024);
+        conf.setInt(CONF_PARQUET_BLOCK_SIZE, 512 * 1024 * 1024);
 
         Job job = Job.getInstance(conf, "Converting SEGY to Parguet");
         Path in = new Path(args[0]);
@@ -78,14 +67,13 @@ public class ConverterJob extends Configured implements Tool {
 
         job.setNumReduceTasks(0);
         job.setInputFormatClass(SEGYInputFormat.class);
-        GroupWriteSupport.setSchema(messageType, getConf());
         job.setOutputFormatClass(ParquetOutputFormat.class);
 
         // Enable SNAPPY compression to make result parquet files more compact
         ParquetOutputFormat.setCompression(job, CompressionCodecName.SNAPPY);
         ParquetOutputFormat.setCompressOutput(job, true);
-
-        ParquetOutputFormat.setWriteSupportClass(job, GroupWriteSupport.class);
+        ParquetOutputFormat.setWriteSupportClass(job, TraceGroupWriteSupport.class);
+        //GroupWriteSupport.setSchema(messageType, conf);
 
         boolean success = job.waitForCompletion(true);
         return (success ? 0 : 1);
@@ -99,19 +87,8 @@ public class ConverterJob extends Configured implements Tool {
             // Mainly it corresponds to SEGY Trace format,
             // however trace data samples are stored in the Double type
             // (compromise between Int and Float types)
-            String writeSchema = "message Trace {\n" +
-                    "required int32 traceID = 1;\n" +
-                    "required int32 fieldRecordNumberID = 2;\n" +
-                    "required int32 distSRG = 3;\n" +
-                    "required int32 srcX = 4;\n" +
-                    "required int32 srcY = 5;\n" +
-                    "required int32 sI = 6;\n" +
-                    "required int32 ilineID = 7;\n" +
-                    "required int32 xlineID = 8;\n" +
-                    "repeated double traceData = 9;\n" +
-                    "}";
-            MessageType mt = MessageTypeParser.parseMessageType(writeSchema);
-            Group group = new SimpleGroup(mt);
+
+            Group group = new SimpleGroup(TraceGroupWriteSupport.getSchema());
             TraceHeaderWritable thw = key;
             // protobuf map order: (1->0), (2->1), (3->2) ...
             group.add(0, thw.getTraceID());

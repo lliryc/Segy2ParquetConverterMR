@@ -97,7 +97,12 @@ public class SEGYInputFormat extends FileInputFormat<TraceHeaderWritable, TraceW
 	private static final int NUM_FORMAT_OFFSET = 3224;
 	private static final int NUM_FORMAT_SIZE = 2;
 	// partitions multiplier
-	private static final int TRACES_MULTIPLIER = 10000;
+	private static final int PARTITIONS_MULTIPLIER = 10;
+	// traces per record - offset (not obligatory)
+	private static final int TRACES_PER_RECORD_OFFSET = 3212;
+	private static final int TRACES_PER_RECORD_SIZE = 2;
+	// default number of data traces per record
+	private static final short DEFAULT_TRACES_PER_RECORD = 2736;
 	// Setting to store data samples number
 	public static final String TRACE_SAMPLES_SETTING = "com.chirkunov.mr.segy2parquet.TRACE_SAMPLES";
 	// size of one data sample in bytes
@@ -110,7 +115,16 @@ public class SEGYInputFormat extends FileInputFormat<TraceHeaderWritable, TraceW
 	private int adjustSplitLength(Path file, JobContext job) throws IOException, IllegalArgumentException {
 		FileSystem fs = file.getFileSystem(job.getConfiguration());
 		try {
+
 			FSDataInputStream stream = fs.open(file);
+
+			byte[] tracesPerRecordBytes = new byte[TRACES_PER_RECORD_SIZE];
+			stream.seek(TRACES_PER_RECORD_OFFSET);
+			stream.read(tracesPerRecordBytes, 0, TRACES_PER_RECORD_SIZE);
+			short tracesPerRecord = ByteBuffer.wrap(tracesPerRecordBytes).order(BYTE_ORDER).getShort();
+			if (tracesPerRecord == 0){
+				tracesPerRecord = DEFAULT_TRACES_PER_RECORD;
+			}
 
 			byte[] nSamplesBytes = new byte[TRACES_SAMPLES_SIZE];
 			stream.seek(TRACES_SAMPLES_OFFSET);
@@ -127,7 +141,7 @@ public class SEGYInputFormat extends FileInputFormat<TraceHeaderWritable, TraceW
 			job.getConfiguration().setInt(TRACE_NUM_FMT_SETTING, numFormat);
 
 			int traceNBytes = TRACE_HEADER_SIZE + nSamples * nBytes;
-			return traceNBytes * TRACES_MULTIPLIER;
+			return traceNBytes * tracesPerRecord * PARTITIONS_MULTIPLIER;
 		} finally {
 			fs.close();
 		}
