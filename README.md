@@ -24,21 +24,23 @@ Segy2ParquetConverterMR is a MapReduce job designed to efficiently convert SEGY 
    ```bash
    git clone https://github.com/lliryc/Segy2ParquetConverterMR.git
    ```
+
 2. Navigate to the project directory:
    ```bash
    cd Segy2ParquetConverterMR
    ```
-3. Build the project using Maven:
-  ```bash
-  mvn clean install
-  ```
 
+3. Build the project using Maven:
+   ```bash
+   mvn clean install
+   ```
+   
 ## Usage
 
 To run the conversion job, use the following command:
-  ```bash
-  hadoop jar target/Segy2ParquetConverterMR-1.0.jar <input_segy_path> <output_parquet_path>
-  ```
+   ```bash
+   hadoop jar target/Segy2ParquetConverterMR-1.0.jar <input_segy_path> <output_parquet_path>
+   ```
 
 ## License
 
